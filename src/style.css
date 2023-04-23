@@ -1,0 +1,34 @@
+:root {
+  background-color: black;
+}
+
+
+canvas {
+  filter: invert(1) saturate(0);
+}
+
+#gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: multiply;
+  background: white;
+
+  /* could make this a gradient or smth */
+}
+
+body {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 100vw;
+  height: 100vh;
+  
+  overflow: hidden;
+
+  position: relative;
+}
