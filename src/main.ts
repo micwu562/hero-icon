@@ -1,8 +1,10 @@
+// @ts-nocheck
+
 import "./style.css";
 
 import mapping from "./mapping.json" assert { type: "JSON" };
 
-let videoAspectRatio;
+let videoAspectRatio = 16 / 9;
 
 // display params
 let WIDTH = 120;
