@@ -128,6 +128,7 @@ const i = setInterval(() => {
   if (!loaded.includes(false)) {
     clearInterval(i);
     window.requestAnimationFrame(frame);
+    resize();
   }
 });
 
@@ -141,6 +142,9 @@ function resize() {
   } else {
     WIDTH = Math.floor(HEIGHT * videoAspectRatio);
   }
+
+  WIDTH += 2;
+  HEIGHT += 2;
 
   // resize video canvas
   canvas.width = WIDTH;
