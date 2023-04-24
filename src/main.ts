@@ -1,9 +1,10 @@
 // @ts-nocheck
+// LOL
 
 import "./style.css";
-
 import mapping from "./mapping.json" assert { type: "JSON" };
 
+// placeholder
 let videoAspectRatio = 16 / 9;
 
 // display params
@@ -87,11 +88,12 @@ function frame(timestamp) {
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-  // TODO: flip the image
-
   for (let i = 0; i < canvas.height / DIVISIONS; i++) {
     for (let j = 0; j < canvas.width / DIVISIONS; j++) {
-      let pixel_v = processPixel(imageData.data, (i * canvas.width + j) * 4);
+      // flip the image lol
+      const _j = canvas.width / DIVISIONS - j - 1;
+
+      let pixel_v = processPixel(imageData.data, (i * canvas.width + _j) * 4);
 
       if (Math.abs(pixel_v - vals[i][j]) < 10) continue;
       vals[i][j] = pixel_v;
