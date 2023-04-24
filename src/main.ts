@@ -43,9 +43,13 @@ function drawToCanvas() {
 }
 
 // setup render canvas
-const images = mapping.map((x) => {
+const loaded = mapping.map((x) => false);
+const images = mapping.map((x, idx) => {
   const img = new Image();
   img.src = `solid/${x}.png`;
+  img.onload = () => {
+    loaded[idx] = true;
+  };
   return img;
 });
 
@@ -62,7 +66,7 @@ renderCtx.fillStyle = "white";
 // setup data
 let vals = Array(HEIGHT)
   .fill(0)
-  .map((x) => Array(WIDTH).fill(0));
+  .map((x) => Array(WIDTH).fill(6969));
 let iconVals = Array(HEIGHT)
   .fill(0)
   .map((x) => Array(WIDTH).fill(""));
@@ -100,6 +104,7 @@ function frame(timestamp) {
 
       const icon = mapping[pixel_v];
       if (iconVals[i][j] === icon) continue;
+
       iconVals[i][j] = icon;
 
       renderCtx.fillRect(
@@ -119,7 +124,12 @@ function frame(timestamp) {
   }
 }
 
-window.requestAnimationFrame(frame);
+const i = setInterval(() => {
+  if (!loaded.includes(false)) {
+    clearInterval(i);
+    window.requestAnimationFrame(frame);
+  }
+});
 
 function resize() {
   // figure out new width and height
