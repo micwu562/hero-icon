@@ -50,6 +50,9 @@ let height: number;
 
 // captures camera feed
 const video = document.createElement("video");
+video.autoplay = true;
+video.muted = true;
+video.playsInline = true;
 
 // video element draws to `canvas` of size `width`*`height` to read pixel values
 const canvas = document.createElement("canvas");
@@ -91,8 +94,6 @@ function init2DArray(w: number, h: number, val: any) {
 //
 
 const loadVideoPromise = new Promise<void>((resolve) => {
-  video.autoplay = true;
-
   navigator.mediaDevices
     .getUserMedia({ audio: false, video: true })
     .then((stream) => {
@@ -143,6 +144,9 @@ const loadIconPromise = new Promise<void>((resolve) => {
 //
 
 Promise.allSettled([loadVideoPromise, loadIconPromise]).then(() => {
+  // start playing the video element here (needed for safari to work for some reason)
+  video.play();
+
   resize();
   window.requestAnimationFrame(frame);
 });
@@ -248,11 +252,9 @@ function resize() {
   canvas.width = width;
   canvas.height = height;
 
-  renderCanvas.style.width = `${width * svgSize}px`;
-  renderCanvas.style.height = `${height * svgSize}px`;
-
   renderCanvas.width = width * svgSize * dpr;
   renderCanvas.height = height * svgSize * dpr;
+  renderCanvas.style.scale = `${1 / dpr}`;
   renderCtx.fillStyle = "white";
 
   // reinit data
