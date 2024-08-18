@@ -30,13 +30,24 @@ body {
   justify-content: center;
   align-items: center;
   width: 100vw;
-  height: 100vh;
+  height: 100svh;
   overflow: hidden;
-  position: relative;
+}
+
+#wrapper {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 canvas {
   filter: invert(1) saturate(0);
+  position: fixed;
+  top: 50svh;
+  left: 50vw;
+  translate: -50% -50%;
+  min-width: 0;
+  min-height: 0;
 }
 
 #gradient {
@@ -44,7 +55,7 @@ canvas {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 100lvh;
   mix-blend-mode: multiply;
 
   transition: --top-color 1s, --bottom-color 1s;
@@ -89,4 +100,8 @@ button {
 
 button:hover {
   transform: translateY(-2px);
+}
+
+#nocam {
+  display: none;
 }

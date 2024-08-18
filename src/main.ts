@@ -34,6 +34,7 @@ let lastMouseTime = performance.now();
 
 const dpr = window.devicePixelRatio || 1;
 let videoAspectRatio: number;
+let videoAvailable: boolean;
 let images: HTMLImageElement[];
 
 let vals: number[][]; // cached pixel brightness data
@@ -65,9 +66,13 @@ const panelDiv = document.querySelector("#ui") as HTMLDivElement;
 const gradientDiv = document.querySelector("#gradient") as HTMLDivElement;
 
 // buttons
+const buttonsSpan = document.querySelector("#buttons")! as HTMLSpanElement;
 const colorBtn = document.querySelector("#color") as HTMLButtonElement;
 const zoomInBtn = document.querySelector("#zoomin") as HTMLButtonElement;
 const zoomOutBtn = document.querySelector("#zoomout") as HTMLButtonElement;
+
+// no cam message
+const noCamSpan = document.querySelector("#nocam")! as HTMLSpanElement;
 
 //
 // Helpers
@@ -96,6 +101,16 @@ const loadVideoPromise = new Promise<void>((resolve) => {
 
       const settings = stream.getVideoTracks()[0].getSettings();
       videoAspectRatio = settings.width! / settings.height!;
+      videoAvailable = true;
+
+      resolve();
+    })
+    .catch(() => {
+      videoAspectRatio = 1;
+      videoAvailable = false;
+
+      noCamSpan.style.display = "inline";
+      buttonsSpan.style.display = "none";
 
       resolve();
     });
@@ -141,13 +156,28 @@ Promise.allSettled([loadVideoPromise, loadIconPromise]).then(() => {
 function frame() {
   window.requestAnimationFrame(frame);
 
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  if (videoAvailable) {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  } else {
+    // draw "No camera :(" onto the screen
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `${window.innerWidth / 3 / svgSize}px Inconsolata, monospace`;
+    ctx.fillText("ō_ō", width / 2, height / 2);
+  }
+
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
   for (let i = 0; i < canvas.height; i++) {
     for (let j = 0; j < canvas.width; j++) {
-      // flip the image lol
-      const _j = canvas.width - j - 1;
+      // flip the image so its like a mirror
+      let _j = canvas.width - j - 1;
+      if (!videoAvailable) {
+        _j = j;
+      }
 
       const pixel_loc = (i * canvas.width + _j) * 4;
       const r = imageData.data[pixel_loc];

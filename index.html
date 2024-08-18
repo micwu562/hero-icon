@@ -7,22 +7,25 @@
     <title>icons</title>
   </head>
   <body>
-    <canvas id="canvas"></canvas>
-    <div id="ui">
-      <p>
-        @ Michael Wu |
-        <a href="https://github.com/micwu562/hero-icon" target="_blank"
-          >Github</a
-        >
-        |
-        <span style="font-weight: bold">
-          <button id="color">[§]</button>
-          <button id="zoomin">[+]</button>
-          <button id="zoomout">[-]</button>
-        </span>
-      </p>
+    <div id="wrapper">
+      <canvas id="canvas"></canvas>
+      <div id="ui">
+        <p>
+          @ Michael Wu |
+          <a href="https://github.com/micwu562/hero-icon" target="_blank"
+            >Github</a
+          >
+          |
+          <span id="buttons" style="font-weight: bold">
+            <button id="color">[§]</button>
+            <button id="zoomin">[+]</button>
+            <button id="zoomout">[-]</button>
+          </span>
+          <span id="nocam">No Camera :(</span>
+        </p>
+      </div>
+      <div id="gradient"></div>
+      <script type="module" src="/src/main.ts"></script>
     </div>
-    <div id="gradient"></div>
-    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
