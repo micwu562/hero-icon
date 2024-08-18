@@ -250,6 +250,8 @@ function resize() {
   canvas.width = width;
   canvas.height = height;
 
+  renderCanvas.style.width = `${width * svgSize * dpr}px`;
+  renderCanvas.style.height = `${height * svgSize * dpr}px`;
   renderCanvas.width = width * svgSize * dpr;
   renderCanvas.height = height * svgSize * dpr;
   renderCanvas.style.scale = `${1 / dpr}`;
