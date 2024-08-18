@@ -99,6 +99,7 @@ const loadVideoPromise = new Promise<void>((resolve) => {
     .then((stream) => {
       console.log("video ready!");
       video.srcObject = stream;
+      video.play();
 
       const settings = stream.getVideoTracks()[0].getSettings();
       videoAspectRatio = settings.width! / settings.height!;
@@ -144,9 +145,6 @@ const loadIconPromise = new Promise<void>((resolve) => {
 //
 
 Promise.allSettled([loadVideoPromise, loadIconPromise]).then(() => {
-  // start playing the video element here (needed for safari to work for some reason)
-  video.play();
-
   resize();
   window.requestAnimationFrame(frame);
 });
