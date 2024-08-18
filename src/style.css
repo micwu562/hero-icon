@@ -1,22 +1,27 @@
+@import url("https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap");
+
 :root {
   background-color: black;
+  color: white;
+  font-family: "Inconsolata", monospace;
 }
 
-
-canvas {
-  filter: invert(1) saturate(0);
+/* voodoo css */
+@property --top-color {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: white;
+}
+@property --bottom-color {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: white;
 }
 
-#gradient {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  mix-blend-mode: multiply;
-  background: white;
-
-  /* could make this a gradient or smth */
+*:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 1px;
+  outline-offset: 2px;
 }
 
 body {
@@ -24,11 +29,64 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-
   width: 100vw;
   height: 100vh;
-  
   overflow: hidden;
-
   position: relative;
+}
+
+canvas {
+  filter: invert(1) saturate(0);
+}
+
+#gradient {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: multiply;
+
+  transition: --top-color 1s, --bottom-color 1s;
+  background: linear-gradient(to top, var(--bottom-color), var(--top-color));
+
+  pointer-events: none;
+}
+
+#ui {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  padding: 10px 15px;
+  background: black;
+  line-height: 1;
+
+  opacity: 1;
+  transition: opacity 0.38s;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+
+  transition: transform 0.18s;
+  cursor: pointer;
+}
+
+button:hover {
+  transform: translateY(-2px);
 }

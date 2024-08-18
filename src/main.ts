@@ -1,170 +1,281 @@
-// @ts-nocheck
-// LOL
-
 import "./style.css";
 import mapping from "./mapping.json" assert { type: "JSON" };
 
-// placeholder
-let videoAspectRatio = 16 / 9;
+//
+// vars
+//
 
-// display params
-let WIDTH = 120;
-let HEIGHT = 90;
+// # of brightness levels for icon rendering
+const COLOR_LEVELS = mapping.length;
+
+// zoom level options
+const SVG_SIZES = [6, 8, 12, 16, 20, 26, 32, 48, 64];
+// theme options (bottom gradient color, top gradient color)
+const COLOR_THEMES = [
+  ["white", "white"],
+  ["#f00", "#f00"],
+  ["#0f0", "#0f0"],
+  ["#00f", "#00f"],
+  ["magenta", "orange"],
+  ["#00f", "#fff"],
+];
+
+// parameters for when panel should fade out
+const PANEL_FADE_TIME = 4000;
+
+//
+
+let svgSize = 12;
+let currentTheme = 0;
+let currentSvgChoice = 2;
+
+let mouseOnPanel = false;
+let lastMouseTime = performance.now();
 
 const dpr = window.devicePixelRatio || 1;
-const SVG_SIZE = 12;
+let videoAspectRatio: number;
+let images: HTMLImageElement[];
 
-// data params
-const DIVISIONS = 1;
-const COLOR_LEVELS = 255;
+let vals: number[][]; // cached pixel brightness data
+let icons: string[][]; // stored icon data
 
-// set up video element
+// dimensions (in # of icons)
+let width: number;
+let height: number;
+
+//
+// HTML Elements
+//
+
+// captures camera feed
 const video = document.createElement("video");
-video.autoplay = true;
 
-navigator.mediaDevices
-  .getUserMedia({ audio: false, video: true })
-  .then((stream) => {
-    console.log("video ready!");
-    video.srcObject = stream;
-
-    const settings = stream.getVideoTracks()[0].getSettings();
-    videoAspectRatio = settings.width / settings.height;
-  });
-
-// setup canvas
+// video element draws to `canvas` of size `width`*`height` to read pixel values
 const canvas = document.createElement("canvas");
-const ctx = canvas.getContext("2d", { willReadFrequently: true });
-canvas.width = WIDTH;
-canvas.height = HEIGHT;
+const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
 
-function drawToCanvas() {
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+// icons are drawn to `renderCanvas`
+const renderCanvas = document.querySelector("#canvas") as HTMLCanvasElement;
+const renderCtx = renderCanvas.getContext("2d")!;
+
+// control panel
+const panelDiv = document.querySelector("#ui") as HTMLDivElement;
+
+// gradient overlay
+const gradientDiv = document.querySelector("#gradient") as HTMLDivElement;
+
+// buttons
+const colorBtn = document.querySelector("#color") as HTMLButtonElement;
+const zoomInBtn = document.querySelector("#zoomin") as HTMLButtonElement;
+const zoomOutBtn = document.querySelector("#zoomout") as HTMLButtonElement;
+
+//
+// Helpers
+//
+
+function init2DArray(w: number, h: number, val: any) {
+  let arr = Array(h);
+  for (let i = 0; i < h; i++) {
+    arr[i] = Array(w).fill(val);
+  }
+  return arr;
 }
 
-// setup render canvas
-const loaded = mapping.map((x) => false);
-const images = mapping.map((x, idx) => {
-  const img = new Image();
-  img.src = `solid/${x}.png`;
-  img.onload = () => {
-    loaded[idx] = true;
-  };
-  return img;
+//
+// Promise to load camera feed
+//
+
+const loadVideoPromise = new Promise<void>((resolve) => {
+  video.autoplay = true;
+
+  navigator.mediaDevices
+    .getUserMedia({ audio: false, video: true })
+    .then((stream) => {
+      console.log("video ready!");
+      video.srcObject = stream;
+
+      const settings = stream.getVideoTracks()[0].getSettings();
+      videoAspectRatio = settings.width! / settings.height!;
+
+      resolve();
+    });
 });
 
-const renderCanvas = document.querySelector("#canvas") as HTMLCanvasElement;
-renderCanvas.style.width = `${WIDTH * SVG_SIZE}px`;
-renderCanvas.style.height = `${HEIGHT * SVG_SIZE}px`;
+//
+// Promise to load icon images
+//
 
-renderCanvas.width = WIDTH * SVG_SIZE * dpr;
-renderCanvas.height = HEIGHT * SVG_SIZE * dpr;
+const loadIconPromise = new Promise<void>((resolve) => {
+  let num_loaded = 0;
 
-const renderCtx = renderCanvas.getContext("2d");
-renderCtx.fillStyle = "white";
+  images = mapping.map((x) => {
+    const img = new Image();
+    img.src = `solid/${x}.png`;
+    img.onload = imageLoadCallback;
+    return img;
+  });
 
-// setup data
-let vals = Array(HEIGHT)
-  .fill(0)
-  .map((x) => Array(WIDTH).fill(6969));
-let iconVals = Array(HEIGHT)
-  .fill(0)
-  .map((x) => Array(WIDTH).fill(""));
+  function imageLoadCallback() {
+    num_loaded++;
+    if (num_loaded === mapping.length) {
+      resolve();
+    }
+  }
+});
 
-// setup grid
-const boxRefs = Array(HEIGHT)
-  .fill(0)
-  .map((x) => Array(WIDTH).fill(null));
+//
+// Start drawing once images and video are loaded
+//
 
-function processPixel(data, i) {
-  const r = data[i];
-  const g = data[i + 1];
-  const b = data[i + 2];
+Promise.allSettled([loadVideoPromise, loadIconPromise]).then(() => {
+  resize();
+  window.requestAnimationFrame(frame);
+});
 
-  const gray = (r + g + b) / 3;
-  return Math.floor((gray / 256) * COLOR_LEVELS);
-}
+//
 
-function frame(timestamp) {
+//
+// Render function
+//
+
+function frame() {
   window.requestAnimationFrame(frame);
 
-  drawToCanvas();
-
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-  for (let i = 0; i < canvas.height / DIVISIONS; i++) {
-    for (let j = 0; j < canvas.width / DIVISIONS; j++) {
+  for (let i = 0; i < canvas.height; i++) {
+    for (let j = 0; j < canvas.width; j++) {
       // flip the image lol
-      const _j = canvas.width / DIVISIONS - j - 1;
+      const _j = canvas.width - j - 1;
 
-      let pixel_v = processPixel(imageData.data, (i * canvas.width + _j) * 4);
+      const pixel_loc = (i * canvas.width + _j) * 4;
+      const r = imageData.data[pixel_loc];
+      const g = imageData.data[pixel_loc + 1];
+      const b = imageData.data[pixel_loc + 2];
+      const gray = (r + g + b) / 3;
+      const brightness = Math.floor((gray / 256) * COLOR_LEVELS);
 
-      if (Math.abs(pixel_v - vals[i][j]) < 10) continue;
-      vals[i][j] = pixel_v;
+      // only change the icon if brightness value changes by more than 10
+      // makes the image look less jittery
+      if (Math.abs(brightness - vals[i][j]) < 10) {
+        continue;
+      }
+      vals[i][j] = brightness;
 
-      const icon = mapping[pixel_v];
-      if (iconVals[i][j] === icon) continue;
-
-      iconVals[i][j] = icon;
+      // if the icon didn't change, no drawing needed
+      const icon = mapping[brightness];
+      if (icons[i][j] === icon) {
+        continue;
+      }
+      icons[i][j] = icon;
 
       renderCtx.fillRect(
-        j * SVG_SIZE * dpr,
-        i * SVG_SIZE * dpr,
-        SVG_SIZE * dpr,
-        SVG_SIZE * dpr
+        j * svgSize * dpr,
+        i * svgSize * dpr,
+        svgSize * dpr,
+        svgSize * dpr,
       );
       renderCtx.drawImage(
-        images[pixel_v],
-        j * SVG_SIZE * dpr,
-        i * SVG_SIZE * dpr,
-        SVG_SIZE * dpr,
-        SVG_SIZE * dpr
+        images[brightness],
+        j * svgSize * dpr,
+        i * svgSize * dpr,
+        svgSize * dpr,
+        svgSize * dpr,
       );
     }
   }
+
+  // update panel opacity
+  const now = performance.now();
+  if (!mouseOnPanel && now - lastMouseTime > PANEL_FADE_TIME) {
+    panelDiv.style.opacity = "0";
+  } else {
+    panelDiv.style.opacity = "1";
+  }
 }
 
-const i = setInterval(() => {
-  if (!loaded.includes(false)) {
-    clearInterval(i);
-    window.requestAnimationFrame(frame);
-    resize();
-  }
-});
+//
+// resize handler
+//
 
 function resize() {
   // figure out new width and height
-  WIDTH = Math.floor(window.innerWidth / SVG_SIZE);
-  HEIGHT = Math.floor(window.innerHeight / SVG_SIZE);
+  width = Math.floor(window.innerWidth / svgSize);
+  height = Math.floor(window.innerHeight / svgSize);
 
-  if (WIDTH / HEIGHT > videoAspectRatio) {
-    HEIGHT = Math.floor(WIDTH / videoAspectRatio);
+  if (width / height > videoAspectRatio) {
+    height = Math.floor(width / videoAspectRatio);
   } else {
-    WIDTH = Math.floor(HEIGHT * videoAspectRatio);
+    width = Math.floor(height * videoAspectRatio);
   }
 
-  WIDTH += 2;
-  HEIGHT += 2;
+  // ensure that edges have icons too
+  width += 2;
+  height += 2;
 
-  // resize video canvas
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
+  // resize stuff
+  canvas.width = width;
+  canvas.height = height;
 
-  // resize render canvas
-  renderCanvas.style.width = `${WIDTH * SVG_SIZE}px`;
-  renderCanvas.style.height = `${HEIGHT * SVG_SIZE}px`;
+  renderCanvas.style.width = `${width * svgSize}px`;
+  renderCanvas.style.height = `${height * svgSize}px`;
 
-  renderCanvas.width = WIDTH * SVG_SIZE * dpr;
-  renderCanvas.height = HEIGHT * SVG_SIZE * dpr;
+  renderCanvas.width = width * svgSize * dpr;
+  renderCanvas.height = height * svgSize * dpr;
   renderCtx.fillStyle = "white";
 
   // reinit data
-  vals = Array(HEIGHT)
-    .fill(0)
-    .map((x) => Array(WIDTH).fill(0));
-  iconVals = Array(HEIGHT)
-    .fill(0)
-    .map((x) => Array(WIDTH).fill(""));
+  vals = init2DArray(width, height, -200);
+  icons = init2DArray(width, height, "");
 }
 
 window.addEventListener("resize", resize);
+
+//
+// Button functionality
+//
+
+colorBtn.onclick = () => {
+  currentTheme = (currentTheme + 1) % COLOR_THEMES.length;
+  const theme = COLOR_THEMES[currentTheme];
+  gradientDiv.style.setProperty("--bottom-color", theme[0]);
+  gradientDiv.style.setProperty("--top-color", theme[1]);
+};
+
+function changeZoom(dz: number) {
+  currentSvgChoice += dz;
+  if (currentSvgChoice < 0) {
+    currentSvgChoice = 0;
+    return;
+  }
+  if (currentSvgChoice >= SVG_SIZES.length) {
+    currentSvgChoice = SVG_SIZES.length - 1;
+    return;
+  }
+  svgSize = SVG_SIZES[currentSvgChoice];
+  resize();
+}
+
+zoomInBtn.onclick = () => {
+  changeZoom(1);
+};
+
+zoomOutBtn.onclick = () => {
+  changeZoom(-1);
+};
+
+//
+// Mouse tracking (for fading out control panel)
+//
+
+window.onmousemove = () => {
+  lastMouseTime = performance.now();
+};
+
+panelDiv.onmouseenter = () => {
+  mouseOnPanel = true;
+};
+panelDiv.onmouseleave = () => {
+  mouseOnPanel = false;
+};
