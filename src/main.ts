@@ -304,6 +304,10 @@ zoomOutBtn.onclick = () => {
 window.onmousemove = () => {
   lastMouseTime = performance.now();
 };
+// for mobile
+window.ontouchstart = () => {
+  lastMouseTime = performance.now();
+};
 
 panelDiv.onmouseenter = () => {
   mouseOnPanel = true;
